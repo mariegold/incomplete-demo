@@ -1,0 +1,27 @@
+library(shiny)
+
+ui <- list(
+  numericInput("a", "A", value = 100, min = 0, max = 10000),
+  numericInput("b", "B", value = 120, min = 0, max = 10000),
+  uiOutput('out')
+)
+
+server <- function(input, output) 
+{
+  a <- reactive(input$a)
+  b <- reactive(input$b)
+  output$out <- renderUI({
+    formula <- "$$
+    \\begin{split}
+    A &= %.0f \\\\
+    B &= %.0f 
+    \\end{split}
+    $$"
+    text <- sprintf(formula, a(), b())
+    withMathJax(  
+      tags$p(text)
+    )
+  })
+}
+
+shinyApp(ui, server)

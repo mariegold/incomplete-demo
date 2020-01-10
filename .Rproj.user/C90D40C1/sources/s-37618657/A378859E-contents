@@ -1,0 +1,149 @@
+setwd("~/Desktop/Statistical Computing/CWB")
+source('CWB2019code.R')
+
+Y <- c(256, 237)
+
+# QUESTION 1
+negloglike <- function(param, Y) {
+  N <- param[1]
+  theta <- param[2]
+  if (N >= max(Y)) {
+   nlog <- sum(lgamma(Y+1)) + sum(lgamma(N-Y+1)) - 2*lgamma(N+1) + 2*N*log(1+exp(theta)) - sum(Y)*theta
+   nlog
+  }
+  else {
+    +Inf
+  }
+}
+
+mle <- optim(c(max(Y)+1, 0), negloglike, Y = Y)
+theta_hat <- mle$par[2]
+phi_hat <- ilogit(theta_hat)
+
+hessian <- optimHess(mle$par, negloglike, Y = Y)
+hess_inv <- solve(hessian)
+
+var_N <- hess_inv[1,1]
+exp_N <- mle$par[1]
+N_hat <- mle$par[1]
+CI_N <- qnorm(c(0.025,0.975), N_hat, sqrt(var_N))
+
+# QUESTION 2
+myhessian <- function(param, Y) {
+  N <- param[1]
+  theta <- param[2]
+  hessian <- matrix(c(0,0,0,0), nrow = 2)
+  hessian[1,1] <- sum(psigamma(N-Y+1,1))-2*psigamma(N+1,1)
+  hessian[1,2] <- (2*exp(theta))/(1+exp(theta))
+  hessian[2,1] <- (2*exp(theta))/(1+exp(theta))
+  hessian[2,2] <- (2*N*exp(theta))/(1+exp(theta))^2
+  hessian
+}
+my_hess <- myhessian(mle$par, Y)
+
+# relative differences per element
+rel_diff_1 <- (my_hess[1,1]- hessian[1,1])/my_hess[1,1]
+rel_diff_2 <- (my_hess[1,2]- hessian[1,2])/my_hess[1,2]
+rel_diff_3 <- (my_hess[2,1]- hessian[2,1])/my_hess[2,1]
+rel_diff_4 <- (my_hess[2,2]- hessian[2,2])/my_hess[2,2]
+rel_diff <- matrix(c(rel_diff_1,rel_diff_2,rel_diff_3,rel_diff_4), nrow = 2)
+
+# bound for second order difference approximations
+e_0 <- .Machine$double.eps
+h <- 0.0001
+L0 <- negloglike(c(exp_N, theta_hat), Y)
+L1 <- sum(psigamma(exp_N-Y+1,1))-2*psigamma(exp_N+1,1)
+L4 <- abs(sum(psigamma(N - Y + 1, 3)) - 2 * psigamma(N + 1, 3))
+abs_diff <- ((e_0*(4*L0 + 2*abs(theta_hat)*L1))/(h^2)) + ((h^2 * L4)/12)
+abs_diff_obs <- abs(hessian-my_hess)
+
+cost <- microbenchmark::microbenchmark(myhessian(mle$par, Y),
+                                       optimHess(mle$par, negloglike, Y = Y))
+
+# QUESTION 3
+set.seed(123)
+arch_boot <- function(param, J) {
+  # get parameters and initialise output variable
+  boot_mle <- matrix(0, 2, nrow = J)
+  N <- floor(param[1])
+  phi <- ilogit(param[2])
+  # generate random data Y 
+  boot_sample <- matrix(rbinom(J*2, N, phi), nrow = J)
+  
+  # obrain J bootstrap parameter estimates
+   for (j in 1:J) {
+    Y <- boot_sample[j,]
+    mle <- optim(c(2*max(Y), 0), negloglike, Y = Y)
+    boot_mle[j,] <- mle$par
+  }
+  boot_mle
+}
+
+J <- 20000
+boot <- arch_boot(c(N_hat, theta_hat), J)
+means <- colMeans(boot)
+
+N_boot <- boot[,1]
+theta_boot <- boot[,2]
+bias_N <- mean(N_boot - N_hat)
+bias_theta <- mean(theta_boot - theta_hat)
+
+bias_phi <- ilogit(bias_theta)
+sd <- c(sd(boot[,1]), sd(boot[,2]))
+
+boot_CI_phi <- ilogit(theta_hat - quantile(boot[,2] - theta_hat, probs = c(0.975, 0.025)))
+boot_CI_N <- exp(log(N_hat) - quantile(log(boot[,1]) - log(N_hat), probs = c(0.975, 0.025))) # invariance property of the MLE
+
+plot(boot[,2])
+plot(boot[,1])
+
+b <- data.frame(boot)
+colnames(b) <- c('N','theta')
+p1 <- ggplot(data = b) +
+  geom_point(aes(x = 1:length(N), y = N)) +
+  xlab('Index') +
+  ylab('N') +
+  ggtitle('Distribution of N')
+
+p2 <- ggplot(b, aes(x=N)) + geom_histogram()
+p3 <- ggplot(b, aes(x=log(N))) + geom_histogram()
+
+library(ggpubr)
+ggarrange(p1,           # scatter plot in first row
+          ggarrange(p2, p3, ncol = 2),    # histograms
+          nrow = 2                                  
+) 
+
+grid.arrange(p1, NA, p2, p3, nrow = 2)
+
+# QUESTION 4
+set.seed(72)
+temp_data <- read_TMIN_data(path = "~/Desktop/Statistical Computing/CWA")
+J <- 20
+K <- 10
+S_boot_train <- data.frame(SE = numeric(J),
+                           DS = numeric(J),
+                           Brier = numeric(J))
+S_boot_test <- data.frame(SE = numeric(J),
+                          DS = numeric(J),
+                          Brier = numeric(J))
+S_boot_boot <- data.frame(SE = numeric(J),
+                          DS = numeric(J),
+                          Brier = numeric(J))
+for (k in 1:10) { 
+  for (i in 1:J) {
+      resample <- data_list_resample(temp_data)
+      S_boot_train[i,] <- cwb4_scores(resample, K)$cvk_mean
+      S_boot_test[i,] <- cwb4_scores(resample, K)$test
+    }
+S_boot_boot[k,] <- mean_score(S_boot_train - S_boot_test)
+}
+
+head(S_boot_train)
+head(S_boot_test) 
+
+list(colMeans(S_boot_train), apply(S_boot_train, 2, sd))
+list(colMeans(S_boot_test), apply(S_boot_test, 2, sd))
+
+data.frame(t(mean_score(S_boot_train - S_boot_test)), apply(S_boot_train - S_boot_test, 2, sd))
+

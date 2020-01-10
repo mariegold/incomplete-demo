@@ -1,5 +1,6 @@
 library(MASS)
 library(shiny)
+library(knitr)
 
 # App for demonstration of the effect of various imputation methods on
 # data with different missing data mechanisms: simulation using
@@ -77,7 +78,7 @@ ui <- fluidPage(
       # Show a plot of the generated distribution
       mainPanel(
          plotOutput("imputed_plot"),
-         #tableOutput('table')
+         uiOutput('out')
       )
    )
 )
@@ -112,12 +113,12 @@ server <- function(input, output) {
     cbind(data[,1], incomplete)
   })
   
-  # imputation according to the chosen method
+  # imputation according to the $chosen method
   XY_imputed <- reactive({
     XY <- XY(); X <- XY[,1]; Y <- XY[,2]
     
     if(input$method == 'Complete case analysis') {
-      XY
+      XY[complete.cases(XY), ]
     } else {
       if(input$method == 'Mean imputation') {
         imputed <- ifelse(is.na(Y), mean(Y, na.rm=TRUE),Y)
@@ -137,10 +138,33 @@ server <- function(input, output) {
   # visualisation
    output$imputed_plot <- renderPlot({
       plot(XY(), xlab="X", ylab="Y")
+    if(input$method != 'Complete case analysis') {
       points(XY_imputed()[is.na(XY()[,2]),], col = 2)
+    }
    })
-   #output$table <- renderTable(table(...))
+   
+   # summary statistics 
+   output$out <- renderUI({
+     formula <- "$$
+        \\begin{align*}
+        \\bar{X} &= %.2f \\\\
+        s_X^2 &= %.2f  \\\\
+        \\bar{Y} &= %.2f  \\\\
+        s_Y^2&= %.2f \\\\
+        r_{X,Y} &= %.2f
+        \\end{align*}
+       $$"
+     text <- sprintf(formula, 
+                     mean(XY_imputed()[,1]), 
+                     var(XY_imputed()[,1]), 
+                     mean(XY_imputed()[,2]), 
+                     var(XY_imputed()[,2]), 
+                     cor(XY_imputed()[,1], XY_imputed()[,2]))
+     withMathJax(text)
+})
 }
+
+
 
 # Run the app 
 shinyApp(ui = ui, server = server)

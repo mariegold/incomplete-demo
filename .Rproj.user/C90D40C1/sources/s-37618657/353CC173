@@ -7,13 +7,13 @@
     "folds" : "",
     "hash" : "0",
     "id" : "353CC173",
-    "lastKnownWriteTime" : 1577663215,
-    "last_content_update" : 1577663215507,
+    "lastKnownWriteTime" : 1578660986,
+    "last_content_update" : 1578660986948,
     "path" : "~/Desktop/shiny-incomplete-data/app.R",
     "project_path" : "app.R",
     "properties" : {
-        "cursorPosition" : "18,29",
-        "scrollLine" : "0"
+        "cursorPosition" : "61,31",
+        "scrollLine" : "41"
     },
     "relative_order" : 1,
     "source_on_save" : false,
