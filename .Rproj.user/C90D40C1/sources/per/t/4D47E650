@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1579023931014.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "238144362",
+    "id" : "4D47E650",
+    "lastKnownWriteTime" : 1579045827,
+    "last_content_update" : 1579045827684,
+    "path" : "~/Desktop/Maths Project/Jackson, MS/ffa.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "11,0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

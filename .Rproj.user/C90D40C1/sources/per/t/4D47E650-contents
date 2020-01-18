@@ -1,0 +1,11 @@
+setwd("~/Desktop/Maths Project/Jackson, MS")
+library(readxl)
+library(devtools)
+install_github("NVE/fitdistrib")
+install_github("NVE/FlomKart")
+library("FlomKart")
+
+data <- read_excel('Pearl River - USGS02486000.xlsx', sheet = 1)
+attach(data)
+
+plot(DecYear, `Annual Peak Streamflow (cfs)`)
