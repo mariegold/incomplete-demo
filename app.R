@@ -18,17 +18,17 @@ ui <- fluidPage(
                      "Random seed", 
                      72),
         numericInput("varx", 
-                     "Variance of X",
+                     "\\( \\mathrm{Var}(X) = \\sigma^2_X \\)",
                      1,
                      min = 10e-6,
                      max = 10e6),
         numericInput("vary", 
-                     "Variance of Y",
+                     "\\( \\mathrm{Var}(Y) = \\sigma^2_Y \\)",
                      1,
                      min = 10e-6,
                      max = 10e6),
         numericInput("cor", 
-                     "Correlation",
+                     "\\( \\rho(X,Y) \\)",
                      0.5,
                      min = -1,
                      max = 1),
@@ -42,7 +42,7 @@ ui <- fluidPage(
         conditionalPanel(
          condition = "input.mechanism == 'MCAR'",
          sliderInput("percentage", 
-                     "% of observed data",
+                     "% of observed data \\( (100 \\theta)\\)",
                      0, 100, 75)),
         # MAR: define parameters that affect missingness
         conditionalPanel(
@@ -72,13 +72,26 @@ ui <- fluidPage(
                     c("Complete case analysis", 
                       "Mean imputation", 
                       "Regression imputation",
-                      "Stochastic regression imputation"))
+                      "Stochastic regression imputation")),
+        uiOutput('out')
       ),
       
       # Show a plot of the generated distribution
       mainPanel(
-         plotOutput("imputed_plot"),
-         uiOutput('out')
+         p("Generates 200 observations from a bivariate normal distribution with zero mean and specified parameters, 
+           i.e. \\( \\mathcal{N}\\left(\\begin{bmatrix} 0 \\\\ 0 \\end{bmatrix}, \\begin{bmatrix} \\sigma^2_X & \\sigma_{X,Y} \\\\
+           \\sigma_{Y,X} & \\sigma^2_Y \\end{bmatrix}\\right)\\) with \\(\\rho_{X, Y}=\\frac{\\sigma_{X,Y}}{\\sigma_X \\sigma_Y}\\)."),
+         p("Let \\(X\\) be fully observed. Assuming \\(R_Y \\) is the missingness indicator taking the value 1 for observed values and 0 
+           for missing values, we impose missingness in \\(Y\\) as follows:"),
+         p("MCAR: \\(\\mathrm{Pr}(R_{Y} = 1 | X, Y, \\mathbf{\\beta}) = \\theta\\)"),
+         p("MAR: \\(\\mathrm{Pr}(R_{Y} = 1 | X, Y, \\mathbf{\\beta}) = \\frac{\\exp\\left(\\beta_0+\\beta_1 X\\right)}
+           {1+\\exp\\left(\\beta_0+\\beta_1 X\\right)}\\)"),
+         p("MNAR: \\(\\mathrm{Pr}(R_{Y} = 1 | X, Y, \\mathbf{\\beta}) = \\frac{\\exp\\left(\\beta_0+\\beta_1 X + \\beta_2 Y\\right)}
+           {1+\\exp\\left(\\beta_{0}+\\beta_1 X+ \\beta_2 Y \\right)}\\)"),
+         p("Summary statistics are displayed on the left panel."),
+         withMathJax(),
+        
+         plotOutput("imputed_plot")
       )
    )
 )
@@ -138,8 +151,10 @@ server <- function(input, output) {
   # visualisation
    output$imputed_plot <- renderPlot({
       plot(XY(), xlab="X", ylab="Y")
+      abline(a=0, b=0, lty=3)
     if(input$method != 'Complete case analysis') {
       points(XY_imputed()[is.na(XY()[,2]),], col = 2)
+      legend("topright", "imputed values", col = 2, pch=1)
     }
    })
    
