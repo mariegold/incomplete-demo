@@ -5,6 +5,7 @@ The simulation study considers data that are:
 - missing completely at random (MCAR)
 - missing at random (MAR)
 - missing not at random (MNAR)
+
 These are drawn from a bivariate normal distribution and the missing data pattern is univariate (for visualisation purposes). 
 
-## TODO
+The app can be accessed [here](https://mariegold.shinyapps.io/shiny-incomplete-data/).
